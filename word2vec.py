@@ -1,42 +1,21 @@
 # -*- coding: utf-8 -*-
+import pandas as pd
 import numpy as np
 import json
-import string
-from glob import glob
-from collections import Counter, OrderedDict
+from time import time
+from six.moves import xrange
 
-def sigmoid(x):
-    return 1.0 / (1.0 + np.exp(-x)) # sigmoid "squashing" function to interval [0,1]
+def load_saved_data():
+    with open("./data/word_dict.json", "r") as f:
+        word_dict = dict(json.loads("".join(f.readlines())))
 
-def build_unigram_table(word_dict):
-    frq = map(lambda v: int(v**0.75), word_dict.values())
-    t = [np.full(v, i, dtype=int) for i, v in enumerate(frq)]
+    with open("./data/word_list.json", "r") as f:
+        word_list = list(json.loads("".join(f.readlines())))
 
-    return np.concatenate(t) # for nagative sampling
+    with open("./data/label_data.json", "r") as f:
+        label_data = np.array(json.loads("".join(f.readlines())))
 
-
-def get_keeping_rate(w, word_list, total_words):
-    z = word_dict[w] / total_words
-    keeping_rate = (np.sqrt(z / 0.001) + 1) * (0.001 / z)
-    return keeping_rate # discard the word appears too frequently
-
-def generate_label_data(data, word_list, window_size, total_words):
-
-    check = lambda x: x in word_list and get_keeping_rate(x, word_list, total_words) > np.random.uniform()
-    label_data = []
-
-    for s in data:
-        s_buffer = [word_list.index(w) for w in list(filter(check, s))]
-
-        for i in range(len(s_buffer)):
-            for c in range(-window_size,  window_size + 1):
-
-                if c == 0 or (i + c) < 0 or (i + c) > (len(s_buffer) - 1):
-                    continue
-
-                label_data.append([s_buffer[i],s_buffer[i + c]])
-
-    return np.array(label_data)
+    return word_dict, word_list, label_data
 
 def generate_batch(label_data, size):
     global index
@@ -54,38 +33,35 @@ def generate_batch(label_data, size):
 
     return batch, labels
 
-def get_top(word_list, model, w, top_n):
-    i = word_list.index(w)
-    dot_product = np.dot(model['W1'], model['W1'][i].reshape(-1))
-    norm = np.linalg.norm(model['W1'], axis=1)
-    result = dot_product / (norm*norm[i])
+def sigmoid(x):
+    return 1.0 / (1.0 + np.exp(-x)) # sigmoid "squashing" function to interval [0,1]
 
-    return [(word_list[i], result[i]) for i in result.argsort()[::-1][:top_n + 1]]
+def build_unigram_table(word_dict):
+    frq = map(lambda v: int(v**0.75), word_dict.values())
+    t = [np.full(v, i, dtype=int) for i, v in enumerate(frq)]
+
+    return np.concatenate(t) # for nagative sampling
 
 if __name__ == '__main__':
 
     index = 0
-    H = 128 # number of hidden layer neurons
-    window_size = 2
-    negative_sample = 10 # Number of negative examples to sample.
+    batch_size = 128
+    embedding_size = 128 # number of hidden layer neurons
+    num_sampled= 10 # Number of negative examples to sample.
     learning_rate = 0.025
     num_steps = 50001
-    batch_size = 128
+    model_name = './model/w2v.json'
 
-    data = load_data()
+    print('Loading data ...')
+    word_dict, word_list, label_data = load_saved_data()
 
-    word_dict = build_word_dict(data)
-    word_list = list(word_dict.keys())
-    total_words = float(np.sum(list(word_dict.values())))
+    vocabulary_size = len(word_list)
 
-    D = len(word_list) # input dimensionality
-
-    print('Preprocess data ...')
-    label_data = generate_label_data(data, word_list, window_size, total_words)
+    start = time()
 
     model = {}
-    model['W1'] = np.random.randn(D,H) / np.sqrt(H) # "Xavier" initialization
-    model['W2'] = np.zeros((D,H))
+    model['W1'] = np.random.randn(vocabulary_size,embedding_size) / np.sqrt(embedding_size) # "Xavier" initialization
+    model['W2'] = np.zeros((vocabulary_size,embedding_size))
 
     unigram_table = build_unigram_table(word_dict)
 
@@ -98,10 +74,10 @@ if __name__ == '__main__':
         total_err = 0
 
         for t in range(batch_size):
-            err_buffer = np.zeros(H)
+            err_buffer = np.zeros(embedding_size)
             i = batch_inputs[t]
 
-            for n in range(negative_sample + 1):
+            for n in range(num_sampled + 1):
 
                 if n == 0: # positive example
                     target = 1
@@ -131,16 +107,8 @@ if __name__ == '__main__':
                 print('Average loss at step ', step, ': ', average_loss)
                 average_loss = 0
 
-    print('Finish training')
+    f = open(model_name, "w")
+    f.write(json.dumps(model['W1'].tolist(), indent=2))
+    f.close()
 
-    print('-----')
-    for i, v in get_top(word_list, model, u"井", 5):
-        print(i, v)
-
-    print('-----')
-    for i, v in get_top(word_list, model, u"雲", 5):
-        print(i, v)
-
-    print('-----')
-    for i, v in get_top(word_list, model, u"峰", 5):
-        print(i, v)
+    print('Spend: {0:.2f} min'.format((time() - start)/60))
