@@ -46,10 +46,10 @@ if __name__ == '__main__':
 
     index = 0
     batch_size = 128
-    embedding_size = 128 # number of hidden layer neurons
+    embedding_size = 30 # number of hidden layer neurons
     num_sampled= 10 # Number of negative examples to sample.
     learning_rate = 0.025
-    num_steps = 50001
+    num_steps = 70001
     model_name = './model/w2v.json'
 
     print('Loading data ...')
@@ -60,7 +60,8 @@ if __name__ == '__main__':
     start = time()
 
     model = {}
-    model['W1'] = np.random.randn(vocabulary_size,embedding_size) / np.sqrt(embedding_size) # "Xavier" initialization
+    # model['W1'] = np.random.randn(vocabulary_size,embedding_size) / np.sqrt(embedding_size) # "Xavier" initialization
+    model['W1'] = (0.5 - np.random.rand(vocabulary_size, embedding_size)) / embedding_size
     model['W2'] = np.zeros((vocabulary_size,embedding_size))
 
     unigram_table = build_unigram_table(word_dict)

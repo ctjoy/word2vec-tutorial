@@ -38,10 +38,10 @@ def generate_batch(label_data, size):
 if __name__ == '__main__':
     index = 0
     batch_size = 128
-    embedding_size = 128  # Dimension of the embedding vector.
+    embedding_size = 30 # Dimension of the embedding vector.
     num_sampled = 10   # Number of negative examples to sample.
     learning_rate = 1
-    num_steps = 500001
+    num_steps = 1500001
     model_name = "./model/w2v_tensorflow.json"
 
     print('Loading data ...')
