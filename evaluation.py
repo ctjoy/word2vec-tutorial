@@ -21,7 +21,7 @@ def get_calculated_top(word_list, model, w1, w2, w3, top_n):
     norm = np.linalg.norm(model, axis=1)
     result = dot_product / (norm*vec_norm)
 
-    print "%s + %s - %s" % (w1, w2, w3)
+    print('{} + {} - {}'.format(w1, w2, w3))
     return [(word_list[i], result[i]) for i in result.argsort()[::-1][:top_n + 2] if i not in [wid1, wid2, wid3]]
 
 if __name__ == '__main__':
