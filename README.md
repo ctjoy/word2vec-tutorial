@@ -1,4 +1,5 @@
 # Word2vec Tutorial
+I wrote a [blog post](https://ctjoy.github.io/jekyll/update/2017/10/23/word2vec-tutorial.html) to explain the detail.
 
 ## Experiment
 
